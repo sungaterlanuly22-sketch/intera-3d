@@ -8,55 +8,87 @@ import * as THREE from 'three';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const AbstractShape = () => {
+// Новая сцена: Премиальная ТВ-зона
+const TVZoneScene = () => {
   const groupRef = useRef();
-  const fragmentsRef = useRef([]);
 
   useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, state.mouse.x * 0.5 + t * 0.1, 0.05);
-    groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, state.mouse.y * 0.5, 0.05);
+    // Плавное слежение за мышью (эффект параллакса)
+    groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, state.mouse.x * 0.2 - 0.2, 0.05);
+    groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, state.mouse.y * 0.1, 0.05);
   });
 
   useEffect(() => {
+    // Анимация выезда всей ТВ-зоны из глубины при загрузке
     const ctx = gsap.context(() => {
-      fragmentsRef.current.forEach((mesh, i) => {
-        gsap.set(mesh.position, { x: (Math.random() - 0.5) * 20, y: (Math.random() - 0.5) * 20, z: (Math.random() - 0.5) * 20 });
-        const targetPos = getSpherePosition(i, 50);
-        gsap.to(mesh.position, { x: targetPos.x, y: targetPos.y, z: targetPos.z, duration: 2, ease: 'power3.out', delay: i * 0.01 });
-      });
-
-      gsap.to(groupRef.current.scale, {
-        x: 2.5, y: 2.5, z: 2.5,
-        scrollTrigger: { trigger: '#hero-section', start: 'top top', end: 'bottom top', scrub: 1 },
-      });
-
-      fragmentsRef.current.forEach((mesh) => {
-        gsap.to(mesh.position, {
-          x: mesh.position.x * 3, y: mesh.position.y * 3, z: mesh.position.z * 3,
-          scrollTrigger: { trigger: '#hero-section', start: 'top top', end: 'bottom top', scrub: 1 },
-        });
+      gsap.from(groupRef.current.position, {
+         z: -15, opacity: 0, duration: 2.5, ease: "power3.out"
       });
     });
     return () => ctx.revert();
   }, []);
 
-  const getSpherePosition = (i, total) => {
-    const phi = Math.acos(-1 + (2 * i) / total);
-    const theta = Math.sqrt(total * Math.PI) * phi;
-    return new THREE.Vector3(2 * Math.cos(theta) * Math.sin(phi), 2 * Math.sin(theta) * Math.sin(phi), 2 * Math.cos(phi));
-  };
-
   return (
-    <group ref={groupRef}>
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
-        {[...Array(50)].map((_, i) => (
-          <mesh key={i} ref={(el) => (fragmentsRef.current[i] = el)} castShadow receiveShadow>
-            <icosahedronGeometry args={[0.3, 0]} />
-            <meshPhysicalMaterial color="#4338ca" emissive="#3730a3" emissiveIntensity={0.5} roughness={0.1} metalness={0.8} clearcoat={1} />
+    <group ref={groupRef} position={[0, -0.5, 0]}>
+      <Float speed={1.5} rotationIntensity={0.05} floatIntensity={0.2}>
+        
+        {/* Основная стеновая панель */}
+        <mesh position={[0, 1.5, -0.4]} castShadow receiveShadow>
+          <boxGeometry args={[7.5, 4.5, 0.1]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.8} />
+        </mesh>
+
+        {/* Декоративные рейки слева */}
+        {[...Array(6)].map((_, i) => (
+          <mesh key={`l-${i}`} position={[-3.2 + i * 0.25, 1.5, -0.3]} castShadow receiveShadow>
+            <boxGeometry args={[0.1, 4.5, 0.15]} />
+            <meshStandardMaterial color="#1e293b" roughness={0.9} />
           </mesh>
         ))}
+        {/* Декоративные рейки справа */}
+        {[...Array(6)].map((_, i) => (
+          <mesh key={`r-${i}`} position={[3.2 - i * 0.25, 1.5, -0.3]} castShadow receiveShadow>
+            <boxGeometry args={[0.1, 4.5, 0.15]} />
+            <meshStandardMaterial color="#1e293b" roughness={0.9} />
+          </mesh>
+        ))}
+
+        {/* ТВ Экран */}
+        <mesh position={[0, 1.8, 0]} castShadow receiveShadow>
+          <boxGeometry args={[5.2, 3, 0.1]} />
+          <meshStandardMaterial color="#000000" roughness={0.1} metalness={0.9} />
+        </mesh>
+        
+        {/* Экран (Свечение изображения) */}
+        <mesh position={[0, 1.8, 0.06]}>
+          <planeGeometry args={[5.0, 2.8]} />
+          <meshBasicMaterial color="#312e81" transparent opacity={0.8} />
+        </mesh>
+
+        {/* Подвесная тумба */}
+        <mesh position={[0, -0.2, 0.3]} castShadow receiveShadow>
+          <boxGeometry args={[7, 0.4, 0.8]} />
+          <meshStandardMaterial color="#f8fafc" roughness={0.2} metalness={0.1} />
+        </mesh>
+
+        {/* Декор на тумбе (умные колонки) */}
+        <mesh position={[-2.5, 0.15, 0.3]} castShadow>
+          <cylinderGeometry args={[0.1, 0.1, 0.3, 16]} />
+          <meshStandardMaterial color="#64748b" roughness={0.3} />
+        </mesh>
+        <mesh position={[2.5, 0.15, 0.3]} castShadow>
+          <cylinderGeometry args={[0.1, 0.1, 0.3, 16]} />
+          <meshStandardMaterial color="#64748b" roughness={0.3} />
+        </mesh>
       </Float>
+
+      {/* Задняя Ambilight подсветка телевизора */}
+      <pointLight position={[0, 1.8, -0.3]} distance={8} intensity={4} color="#06b6d4" />
+      <pointLight position={[2, 1.8, -0.3]} distance={8} intensity={3} color="#a855f7" />
+      <pointLight position={[-2, 1.8, -0.3]} distance={8} intensity={3} color="#3b82f6" />
+      
+      {/* Нижняя подсветка под тумбой */}
+      <pointLight position={[0, -0.5, 0.2]} distance={6} intensity={2.5} color="#818cf8" />
     </group>
   );
 };
@@ -73,10 +105,9 @@ export default function HeroSection() {
     <div className="relative bg-slate-950 text-white selection:bg-indigo-500/30 font-sans">
       <section id="hero-section" className="relative h-[150vh]">
         <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-between px-12 lg:px-24">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950 -z-10" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-900/30 via-slate-950 to-slate-950 -z-10" />
           <div className="relative z-10 w-full max-w-xl">
             
-            {/* 3D Контейнер для текста */}
             <div className="mb-12" style={{ perspective: "1000px" }}>
               <h1 className="text-7xl md:text-8xl font-extrabold tracking-widest uppercase flex">
                 {letters.map((letter, i) => (
@@ -107,12 +138,12 @@ export default function HeroSection() {
             </motion.div>
           </div>
           <div className="absolute inset-0 lg:static lg:w-1/2 h-full z-0 pointer-events-none lg:pointer-events-auto opacity-40 lg:opacity-100">
-            <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
-              <ambientLight intensity={0.5} />
-              <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={1} castShadow />
-              <AbstractShape />
+            <Canvas camera={{ position: [0, 0, 9], fov: 45 }}>
+              <ambientLight intensity={0.2} /> {/* Сделали общее освещение темнее, чтобы круче смотрелась подсветка */}
+              <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={0.5} castShadow />
+              <TVZoneScene />
               <Environment preset="city" />
-              <ContactShadows position={[0, -3, 0]} opacity={0.4} scale={20} blur={2} far={4} />
+              <ContactShadows position={[0, -2.5, 0]} opacity={0.6} scale={20} blur={2} far={4} />
             </Canvas>
           </div>
         </div>
